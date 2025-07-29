@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Zombie Fishing</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
+    <style>
+        body { margin: 0; display: flex; justify-content: center; align-items: center; background: #333; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+<script>
+const config = {
+    type: Phaser.AUTO,
+    width: 800,
+    height: 600,
+    scene: {
+        preload: preload,
+        create: create,
+        update: update
+    },
+    physics: {
+        default: 'arcade',
+        arcade: { gravity: { y: 0 } }
+    }
+};
+
+const game = new Phaser.Game(config);
+
+let player, water, fishGroup, zombies, fishCount = 0, rodLevel = 1;
+let fishText, upgradeText, statusText;
+
+function preload() {
+    this.load.image('player', 'https://via.placeholder.com/32x32.png?text=P');
+    this.load.image('fish', 'https://via.placeholder.com/16x16.png?text=F');
+    this.load.image('zombie', 'https://via.placeholder.com/32x32.png?text=Z');
+    this.load.image('water', 'https://via.placeholder.com/800x200.png?text=W');
+}
+
+function create() {
+    water = this.physics.add.sprite(400, 500, 'water').setImmovable(true);
+    player = this.physics.add.sprite(400, 400, 'player').setImmovable(true);
+    fishGroup = this.physics.add.group();
+    zombies = this.physics.add.group();
+
+    fishText = this.add.text(16, 16, 'Fish: 0', { fontSize: '20px', color: '#fff' });
+    upgradeText = this.add.text(16, 40, 'Rod Level: 1 (Cost: 10 fish)', { fontSize: '20px', color: '#fff' });
+    statusText = this.add.text(16, 64, 'Status: Fishing...', { fontSize: '20px', color: '#fff' });
+
+    this.physics.add.collider(player, fishGroup, catchFish, null, this);
+    this.physics.add.collider(player, zombies, hitZombie, null, this);
+
+    this.time.addEvent({ delay: 2000 / rodLevel, callback: spawnFish, callbackScope: this, loop: true });
+    this.time.addEvent({ delay: 5000, callback: spawnZombie, callbackScope: this, loop: true });
+
+    this.input.on('pointerdown', upgradeRod, this);
+}
+
+function spawnFish() {
+    const x = Phaser.Math.Between(300, 500);
+    const fish = fishGroup.create(x, 500, 'fish').setVelocityY(-50);
+    fish.setData('value', 1);
+}
+
+function spawnZombie() {
+    const x = Phaser.Math.Between(0, 800);
+    const zombie = zombies.create(x, 600, 'zombie').setVelocityY(-100);
+}
+
+function catchFish(player, fish) {
+    fish.destroy();
+    fishCount += fish.getData('value');
+    fishText.setText(`Fish: ${fishCount}`);
+    updateUpgradeText();
+}
+
+function hitZombie(player, zombie) {
+    zombie.destroy();
+    fishCount = Math.max(0, fishCount - 5);
+    fishText.setText(`Fish: ${fishCount}`);
+    statusText.setText('Status: Zombie attack! -5 fish');
+    this.time.delayedCall(2000, () => statusText.setText('Status: Fishing...'));
+    updateUpgradeText();
+}
+
+function upgradeRod() {
+    const cost = rodLevel * 10;
+    if (fishCount >= cost) {
+        fishCount -= cost;
+        rodLevel++;
+        fishText.setText(`Fish: ${fishCount}`);
+        updateUpgradeText();
+        statusText.setText('Status: Rod upgraded!');
+        this.time.delayedCall(2000, () => statusText.setText('Status: Fishing...'));
+    }
+}
+
+function updateUpgradeText() {
+    upgradeText.setText(`Rod Level: ${rodLevel} (Cost: ${rodLevel * 10} fish)`);
+}
+
+function update() {
+    fishGroup.getChildren().forEach(fish => {
+        if (fish.y < 300) fish.destroy();
+    });
+    zombies.getChildren().forEach(zombie => {
+        if (zombie.y < 200) zombie.destroy();
+    });
+}
+</script>
+</body>
+</html>
