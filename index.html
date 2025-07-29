@@ -8,10 +8,36 @@
         html, body { height: 100%; margin: 0; padding: 0; background: #333; }
         body { width: 100vw; height: 100vh; overflow: hidden; display: flex; justify-content: center; align-items: center; }
         canvas { display: block; max-width: 100vw; max-height: 100vh; margin: auto; }
+    #backpackBtn:hover #backpackIcon {
+        transform: scale(1.18) rotate(-8deg);
+        filter: drop-shadow(0 4px 16px #44f);
+    }
+    #backpackBtn:active #backpackIcon {
+        transform: scale(0.92) rotate(8deg);
+        filter: drop-shadow(0 2px 8px #222);
+    }
+    #backpackBtn:hover #backpackIcon {
+        transform: scale(1.18) rotate(-8deg);
+        filter: drop-shadow(0 4px 16px #44f);
+    }
+    #backpackBtn:active #backpackIcon {
+        transform: scale(0.92) rotate(8deg);
+        filter: drop-shadow(0 2px 8px #222);
+    }
     </style>
 </head>
 <body>
+<button id="backpackBtn" style="position:absolute;top:50%;left:10px;transform:translateY(-50%);z-index:11;width:56px;height:56px;padding:0;background:transparent;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+    <img src="assets/backpack.png" id="backpackIcon" alt="Backpack" style="width:48px;height:48px;transition:transform 0.18s cubic-bezier(.5,2,.5,1);filter:drop-shadow(0 2px 8px #222);">
+</button>
 <button id="castBtn" style="position:absolute;top:20px;left:50%;transform:translateX(-50%);z-index:10;font-size:24px;padding:10px 30px;">Cast</button>
+<div id="inventoryModal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.6);z-index:100;justify-content:center;align-items:center;">
+  <div style="background:#222;padding:32px 40px;border-radius:16px;box-shadow:0 4px 32px #000;min-width:320px;max-width:90vw;">
+    <h2 style="color:#fff;margin-top:0;margin-bottom:16px;">Inventory</h2>
+    <pre id="modalInventoryText" style="color:#fff;font-size:18px;margin-bottom:24px;"></pre>
+    <button id="closeInventoryBtn" style="font-size:20px;padding:8px 24px;background:#444;color:#fff;border-radius:8px;border:none;cursor:pointer;">Close</button>
+  </div>
+</div>
 <script>
 function getGameSize() {
     const w = window.innerWidth;
@@ -72,16 +98,47 @@ window.addEventListener('resize', () => {
 });
 
 
-createGame();
+
 document.getElementById('castBtn').addEventListener('click', () => {
     if (!isCasting) {
         castRod();
     }
 });
 
+createGame();
+
+document.getElementById('backpackBtn').addEventListener('click', () => {
+    updateModalInventoryText();
+    document.getElementById('inventoryModal').style.display = 'flex';
+    // Click animation: briefly scale down and up
+    const icon = document.getElementById('backpackIcon');
+    icon.style.transition = 'transform 0.12s cubic-bezier(.5,2,.5,1)';
+    icon.style.transform = 'scale(0.92) rotate(8deg)';
+    setTimeout(() => {
+        icon.style.transition = 'transform 0.18s cubic-bezier(.5,2,.5,1)';
+        icon.style.transform = '';
+    }, 120);
+});
+
+document.getElementById('closeInventoryBtn').addEventListener('click', () => {
+    document.getElementById('inventoryModal').style.display = 'none';
+});
+
+function updateModalInventoryText() {
+    let totalValue = 0;
+    let lines = [];
+    for (let f of fishTypes) {
+        let count = inventory[f.name];
+        totalValue += count * f.price;
+        lines.push(`${f.name}: ${count} ($${f.price} ea)`);
+    }
+    lines.push(`Total Value: $${totalValue}`);
+    document.getElementById('modalInventoryText').textContent = lines.join('\n');
+}
+
 function preload() {
     this.load.image('player', 'https://via.placeholder.com/32x32.png?text=P');
-    this.load.image('fish', 'https://via.placeholder.com/16x16.png?text=F');
+    this.load.image('fish', 'assets/greenFish.png');
     this.load.image('water', 'https://via.placeholder.com/800x200.png?text=W');
 }
 
