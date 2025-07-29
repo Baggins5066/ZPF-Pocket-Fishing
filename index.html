@@ -11,6 +11,7 @@
     </style>
 </head>
 <body>
+<button id="castBtn" style="position:absolute;top:20px;left:50%;transform:translateX(-50%);z-index:10;font-size:24px;padding:10px 30px;">Cast</button>
 <script>
 function getGameSize() {
     const w = window.innerWidth;
@@ -25,8 +26,9 @@ function getGameSize() {
 }
 
 let game;
-let player, water, fishGroup, zombies, fishCount = 0, rodLevel = 1;
+let player, water, fishGroup, fishCount = 0, rodLevel = 1;
 let fishText, upgradeText, statusText;
+let isCasting = false;
 
 function createGame() {
     const size = getGameSize();
@@ -54,31 +56,32 @@ window.addEventListener('resize', () => {
     }
 });
 
+
 createGame();
+document.getElementById('castBtn').addEventListener('click', () => {
+    if (!isCasting) {
+        castRod();
+    }
+});
 
 function preload() {
     this.load.image('player', 'https://via.placeholder.com/32x32.png?text=P');
     this.load.image('fish', 'https://via.placeholder.com/16x16.png?text=F');
-    this.load.image('zombie', 'https://via.placeholder.com/32x32.png?text=Z');
     this.load.image('water', 'https://via.placeholder.com/800x200.png?text=W');
 }
 
 function create() {
     water = this.physics.add.sprite(400, 500, 'water').setImmovable(true);
-    player = this.physics.add.sprite(400, 400, 'player').setImmovable(true);
+    player = this.physics.add.sprite(400, 200, 'player').setImmovable(true);
     fishGroup = this.physics.add.group();
-    zombies = this.physics.add.group();
 
     fishText = this.add.text(16, 16, 'Fish: 0', { fontSize: '20px', color: '#fff' });
     upgradeText = this.add.text(16, 40, 'Rod Level: 1 (Cost: 10 fish)', { fontSize: '20px', color: '#fff' });
-    statusText = this.add.text(16, 64, 'Status: Fishing...', { fontSize: '20px', color: '#fff' });
+    statusText = this.add.text(16, 64, 'Status: Ready to cast!', { fontSize: '20px', color: '#fff' });
 
-    this.physics.add.collider(player, fishGroup, catchFish, null, this);
-    this.physics.add.collider(player, zombies, hitZombie, null, this);
-
-    this.time.addEvent({ delay: 2000 / rodLevel, callback: spawnFish, callbackScope: this, loop: true });
-    this.time.addEvent({ delay: 5000, callback: spawnZombie, callbackScope: this, loop: true });
-
+    // Add labels next to sprites
+    this.add.text(player.x + 40, player.y - 16, 'Fisher', { fontSize: '18px', color: '#fff' });
+    this.add.text(water.x + 100, water.y - 20, 'Water', { fontSize: '18px', color: '#fff' });
     this.input.on('pointerdown', upgradeRod, this);
 }
 
@@ -88,24 +91,10 @@ function spawnFish() {
     fish.setData('value', 1);
 }
 
-function spawnZombie() {
-    const x = Phaser.Math.Between(0, 800);
-    const zombie = zombies.create(x, 600, 'zombie').setVelocityY(-100);
-}
-
 function catchFish(player, fish) {
     fish.destroy();
     fishCount += fish.getData('value');
     fishText.setText(`Fish: ${fishCount}`);
-    updateUpgradeText();
-}
-
-function hitZombie(player, zombie) {
-    zombie.destroy();
-    fishCount = Math.max(0, fishCount - 5);
-    fishText.setText(`Fish: ${fishCount}`);
-    statusText.setText('Status: Zombie attack! -5 fish');
-    this.time.delayedCall(2000, () => statusText.setText('Status: Fishing...'));
     updateUpgradeText();
 }
 
@@ -123,14 +112,64 @@ function upgradeRod() {
 
 function updateUpgradeText() {
     upgradeText.setText(`Rod Level: ${rodLevel} (Cost: ${rodLevel * 10} fish)`);
+
+}
+
+// --- Fishing Mechanic ---
+function castRod() {
+    isCasting = true;
+    statusText.setText('Status: Casting...');
+    document.getElementById('castBtn').disabled = true;
+    // Animate rod down (move player sprite)
+    let scene = game.scene.scenes[0];
+    scene.tweens.add({
+        targets: player,
+        y: 400,
+        duration: 500,
+        onComplete: () => {
+            // Wait random 1-5 seconds
+            let waitTime = Phaser.Math.Between(1000, 5000);
+            statusText.setText('Status: Waiting for a bite...');
+            setTimeout(() => {
+                // Animate rod up
+                scene.tweens.add({
+                    targets: player,
+                    y: 200,
+                    duration: 500,
+                    onComplete: () => {
+                        revealCatch(scene);
+                    }
+                });
+            }, waitTime);
+        }
+    });
+}
+
+function revealCatch(scene) {
+    // 40% chance to catch a fish
+    let caught = Math.random() < 0.4;
+    if (caught) {
+        fishCount++;
+        fishText.setText(`Fish: ${fishCount}`);
+        statusText.setText('Status: You caught a fish!');
+        // Show fish sprite next to player with label
+        let fishSprite = scene.add.sprite(player.x + 60, player.y + 32, 'fish');
+        scene.add.text(player.x + 80, player.y + 16, 'Fish', { fontSize: '18px', color: '#fff' });
+        setTimeout(() => fishSprite.destroy(), 1200);
+    } else {
+        statusText.setText('Status: Nothing was caught.');
+    }
+    updateUpgradeText();
+    setTimeout(() => {
+        statusText.setText('Status: Ready to cast!');
+        isCasting = false;
+        document.getElementById('castBtn').disabled = false;
+    }, 1500);
 }
 
 function update() {
     fishGroup.getChildren().forEach(fish => {
         if (fish.y < 300) fish.destroy();
-    });
-    zombies.getChildren().forEach(zombie => {
-        if (zombie.y < 200) zombie.destroy();
     });
 }
 </script>
