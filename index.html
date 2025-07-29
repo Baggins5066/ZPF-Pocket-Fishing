@@ -177,9 +177,6 @@ function create() {
     player = this.physics.add.sprite(400, 200, 'player').setImmovable(true);
     fishGroup = this.physics.add.group();
 
-    statusText = this.add.text(16, 16, 'Status: Ready to cast!', { fontSize: '20px', color: '#fff' });
-
-
     // Add labels next to sprites
     this.add.text(player.x + 40, player.y - 16, 'Fisher', { fontSize: '18px', color: '#fff' });
     this.add.text(water.x + 100, water.y - 20, 'Water', { fontSize: '18px', color: '#fff' });
@@ -210,7 +207,6 @@ function updateUpgradeText() {
 // --- Fishing Mechanic ---
 function castRod() {
     isCasting = true;
-    statusText.setText('Status: Casting...');
     document.getElementById('castBtn').disabled = true;
     // Animate rod down (move player sprite)
     let scene = game.scene.scenes[0];
@@ -221,7 +217,6 @@ function castRod() {
         onComplete: () => {
             // Wait random 1-5 seconds
             let waitTime = Phaser.Math.Between(1000, 5000);
-            statusText.setText('Status: Waiting for a bite...');
             setTimeout(() => {
                 // Animate rod up
                 scene.tweens.add({
@@ -229,6 +224,9 @@ function castRod() {
                     y: 200,
                     duration: 500,
                     onComplete: () => {
+                        // Enable cast button immediately after rod returns
+                        document.getElementById('castBtn').disabled = false;
+                        isCasting = false;
                         revealCatch(scene);
                     }
                 });
@@ -252,20 +250,12 @@ function revealCatch(scene) {
     let caught = selectedFish !== null && Math.random() < 0.7; // 70% chance to catch something
     if (caught) {
         inventory[selectedFish.name]++;
-        statusText.setText(`Status: You caught a ${selectedFish.name}! ($${selectedFish.price})`);
         // Show fish sprite next to player with label
         let fishSprite = scene.add.sprite(player.x + 60, player.y + 32, 'fish');
         scene.add.text(player.x + 80, player.y + 16, selectedFish.name, { fontSize: '18px', color: '#fff' });
         setTimeout(() => fishSprite.destroy(), 1200);
-    } else {
-        statusText.setText('Status: Nothing was caught.');
     }
     updateInventoryText();
-    setTimeout(() => {
-        statusText.setText('Status: Ready to cast!');
-        isCasting = false;
-        document.getElementById('castBtn').disabled = false;
-    }, 1500);
 }
 
 function updateInventoryText() {
