@@ -52,7 +52,7 @@ function getGameSize() {
 }
 
 let game;
-let player, water, fishGroup, fishCount = 0, rodLevel = 1;
+let player, fishGroup, fishCount = 0, rodLevel = 1;
 let fishText, upgradeText, statusText;
 let isCasting = false;
 let fishTypes = [
@@ -134,7 +134,40 @@ function createInventoryBadge() {
     }
 }
 
+// Create total value display under backpack button
+function createTotalValueDisplay() {
+    let valueDiv = document.getElementById('totalValueDiv');
+    if (!valueDiv) {
+        valueDiv = document.createElement('div');
+        valueDiv.id = 'totalValueDiv';
+        valueDiv.style.position = 'absolute';
+        valueDiv.style.left = '10px';
+        valueDiv.style.top = 'calc(50% + 36px)';
+        valueDiv.style.transform = 'translateY(-50%)';
+        valueDiv.style.zIndex = '11';
+        valueDiv.style.color = '#fff';
+        valueDiv.style.fontSize = '18px';
+        valueDiv.style.fontWeight = 'bold';
+        valueDiv.style.textShadow = '0 2px 8px #222';
+        valueDiv.textContent = 'Total Value: $0';
+        document.body.appendChild(valueDiv);
+    }
+    updateTotalValueDisplay();
+}
+
+function updateTotalValueDisplay() {
+    let totalValue = 0;
+    for (let f of fishTypes) {
+        totalValue += inventory[f.name] * f.price;
+    }
+    let valueDiv = document.getElementById('totalValueDiv');
+    if (valueDiv) {
+        valueDiv.textContent = `$${totalValue}`;
+    }
+}
+
 createInventoryBadge();
+createTotalValueDisplay();
 createGame();
 
 document.getElementById('backpackBtn').addEventListener('click', () => {
@@ -169,17 +202,14 @@ function updateModalInventoryText() {
 function preload() {
     this.load.image('player', 'https://via.placeholder.com/32x32.png?text=P');
     this.load.image('fish', 'assets/greenFish.png');
-    this.load.image('water', 'https://via.placeholder.com/800x200.png?text=W');
 }
 
 function create() {
-    water = this.physics.add.sprite(400, 500, 'water').setImmovable(true);
     player = this.physics.add.sprite(400, 200, 'player').setImmovable(true);
     fishGroup = this.physics.add.group();
 
-    // Add labels next to sprites
+    // Add label next to player sprite
     this.add.text(player.x + 40, player.y - 16, 'Fisher', { fontSize: '18px', color: '#fff' });
-    this.add.text(water.x + 100, water.y - 20, 'Water', { fontSize: '18px', color: '#fff' });
     this.input.on('pointerdown', upgradeRod, this);
 }
 
@@ -256,15 +286,16 @@ function revealCatch(scene) {
         setTimeout(() => fishSprite.destroy(), 1200);
     }
     updateInventoryText();
+    updateTotalValueDisplay();
 }
 
 function updateInventoryText() {
-    // Update inventory badge on backpack icon
     let totalCount = Object.values(inventory).reduce((a, b) => a + b, 0);
     let badge = document.getElementById('inventoryBadge');
     if (badge) {
         badge.textContent = totalCount;
     }
+    updateTotalValueDisplay();
 }
 
 function update() {
