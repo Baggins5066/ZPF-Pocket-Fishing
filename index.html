@@ -5,31 +5,56 @@
     <title>Zombie Fishing</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
     <style>
-        body { margin: 0; display: flex; justify-content: center; align-items: center; background: #333; }
-        canvas { display: block; }
+        html, body { height: 100%; margin: 0; padding: 0; background: #333; }
+        body { width: 100vw; height: 100vh; overflow: hidden; display: flex; justify-content: center; align-items: center; }
+        canvas { display: block; max-width: 100vw; max-height: 100vh; margin: auto; }
     </style>
 </head>
 <body>
 <script>
-const config = {
-    type: Phaser.AUTO,
-    width: 800,
-    height: 600,
-    scene: {
-        preload: preload,
-        create: create,
-        update: update
-    },
-    physics: {
-        default: 'arcade',
-        arcade: { gravity: { y: 0 } }
+function getGameSize() {
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    let width = w;
+    let height = Math.round(w * 9 / 16);
+    if (height > h) {
+        height = h;
+        width = Math.round(h * 16 / 9);
     }
-};
+    return { width, height };
+}
 
-const game = new Phaser.Game(config);
-
+let game;
 let player, water, fishGroup, zombies, fishCount = 0, rodLevel = 1;
 let fishText, upgradeText, statusText;
+
+function createGame() {
+    const size = getGameSize();
+    const config = {
+        type: Phaser.AUTO,
+        width: size.width,
+        height: size.height,
+        scene: {
+            preload: preload,
+            create: create,
+            update: update
+        },
+        physics: {
+            default: 'arcade',
+            arcade: { gravity: { y: 0 } }
+        }
+    };
+    game = new Phaser.Game(config);
+}
+
+window.addEventListener('resize', () => {
+    if (game) {
+        const size = getGameSize();
+        game.scale.resize(size.width, size.height);
+    }
+});
+
+createGame();
 
 function preload() {
     this.load.image('player', 'https://via.placeholder.com/32x32.png?text=P');
