@@ -105,6 +105,36 @@ document.getElementById('castBtn').addEventListener('click', () => {
     }
 });
 
+
+// Ensure badge is created and initialized to 0 before game starts
+function createInventoryBadge() {
+    let badge = document.getElementById('inventoryBadge');
+    if (!badge) {
+        badge = document.createElement('span');
+        badge.id = 'inventoryBadge';
+        badge.style.position = 'absolute';
+        badge.style.left = '38px';
+        badge.style.top = '6px';
+        badge.style.minWidth = '22px';
+        badge.style.height = '22px';
+        badge.style.background = '#44f';
+        badge.style.color = '#fff';
+        badge.style.fontSize = '16px';
+        badge.style.fontWeight = 'bold';
+        badge.style.borderRadius = '50%';
+        badge.style.display = 'flex';
+        badge.style.alignItems = 'center';
+        badge.style.justifyContent = 'center';
+        badge.style.boxShadow = '0 2px 8px #222';
+        badge.style.zIndex = '12';
+        badge.style.pointerEvents = 'none';
+        badge.style.transition = 'transform 0.18s cubic-bezier(.5,2,.5,1)';
+        badge.textContent = '0';
+        document.getElementById('backpackBtn').appendChild(badge);
+    }
+}
+
+createInventoryBadge();
 createGame();
 
 document.getElementById('backpackBtn').addEventListener('click', () => {
@@ -147,12 +177,8 @@ function create() {
     player = this.physics.add.sprite(400, 200, 'player').setImmovable(true);
     fishGroup = this.physics.add.group();
 
-    fishText = this.add.text(16, 16, 'Fish: 0', { fontSize: '20px', color: '#fff' });
-    upgradeText = this.add.text(16, 40, 'Rod Level: 1 (Cost: 10 fish)', { fontSize: '20px', color: '#fff' });
-    statusText = this.add.text(16, 64, 'Status: Ready to cast!', { fontSize: '20px', color: '#fff' });
-    inventoryText = this.add.text(16, 88, 'Inventory:', { fontSize: '20px', color: '#fff' });
+    statusText = this.add.text(16, 16, 'Status: Ready to cast!', { fontSize: '20px', color: '#fff' });
 
-    updateInventoryText();
 
     // Add labels next to sprites
     this.add.text(player.x + 40, player.y - 16, 'Fisher', { fontSize: '18px', color: '#fff' });
@@ -174,20 +200,11 @@ function catchFish(player, fish) {
 }
 
 function upgradeRod() {
-    const cost = rodLevel * 10;
-    if (fishCount >= cost) {
-        fishCount -= cost;
-        rodLevel++;
-        fishText.setText(`Fish: ${fishCount}`);
-        updateUpgradeText();
-        statusText.setText('Status: Rod upgraded!');
-        this.time.delayedCall(2000, () => statusText.setText('Status: Fishing...'));
-    }
+    // Removed rod upgrade functionality
 }
 
 function updateUpgradeText() {
-    upgradeText.setText(`Rod Level: ${rodLevel} (Cost: ${rodLevel * 10} fish)`);
-
+    // Removed rod upgrade text
 }
 
 // --- Fishing Mechanic ---
@@ -235,7 +252,6 @@ function revealCatch(scene) {
     let caught = selectedFish !== null && Math.random() < 0.7; // 70% chance to catch something
     if (caught) {
         inventory[selectedFish.name]++;
-        fishText.setText(`Fish: ${Object.values(inventory).reduce((a,b)=>a+b,0)}`);
         statusText.setText(`Status: You caught a ${selectedFish.name}! ($${selectedFish.price})`);
         // Show fish sprite next to player with label
         let fishSprite = scene.add.sprite(player.x + 60, player.y + 32, 'fish');
@@ -245,7 +261,6 @@ function revealCatch(scene) {
         statusText.setText('Status: Nothing was caught.');
     }
     updateInventoryText();
-    updateUpgradeText();
     setTimeout(() => {
         statusText.setText('Status: Ready to cast!');
         isCasting = false;
@@ -254,15 +269,12 @@ function revealCatch(scene) {
 }
 
 function updateInventoryText() {
-    let totalValue = 0;
-    let lines = ['Inventory:'];
-    for (let f of fishTypes) {
-        let count = inventory[f.name];
-        totalValue += count * f.price;
-        lines.push(`${f.name}: ${count} ($${f.price} ea)`);
+    // Update inventory badge on backpack icon
+    let totalCount = Object.values(inventory).reduce((a, b) => a + b, 0);
+    let badge = document.getElementById('inventoryBadge');
+    if (badge) {
+        badge.textContent = totalCount;
     }
-    lines.push(`Total Value: $${totalValue}`);
-    inventoryText.setText(lines.join('\n'));
 }
 
 function update() {
