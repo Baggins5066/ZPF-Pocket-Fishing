@@ -32,10 +32,16 @@
 </button>
 <button id="castBtn" style="position:absolute;top:20px;left:50%;transform:translateX(-50%);z-index:10;font-size:24px;padding:10px 30px;">Cast</button>
 <div id="inventoryModal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.6);z-index:100;justify-content:center;align-items:center;">
-  <div style="background:#222;padding:32px 40px;border-radius:16px;box-shadow:0 4px 32px #000;min-width:320px;max-width:90vw;">
+  <div style="background:#222;padding:32px 40px;border-radius:16px;box-shadow:0 4px 32px #000;min-width:340px;max-width:90vw;position:relative;">
     <h2 style="color:#fff;margin-top:0;margin-bottom:16px;">Inventory</h2>
-    <pre id="modalInventoryText" style="color:#fff;font-size:18px;margin-bottom:24px;"></pre>
+    <div id="inventoryGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:18px;margin-bottom:24px;"></div>
     <button id="closeInventoryBtn" style="font-size:20px;padding:8px 24px;background:#444;color:#fff;border-radius:8px;border:none;cursor:pointer;">Close</button>
+    <div id="itemDetailPanel" style="display:none;position:absolute;top:32px;right:-320px;width:260px;background:#222;border-radius:16px;box-shadow:0 4px 32px #000;padding:24px;z-index:101;flex-direction:column;align-items:center;">
+      <img id="detailImg" src="" style="width:96px;height:96px;margin-bottom:12px;border-radius:12px;box-shadow:0 2px 8px #222;">
+      <div id="detailTitle" style="color:#fff;font-size:22px;font-weight:bold;margin-bottom:8px;"></div>
+      <div id="detailValue" style="color:#8ff;font-size:18px;margin-bottom:8px;"></div>
+      <div id="detailDesc" style="color:#ccc;font-size:16px;"></div>
+    </div>
   </div>
 </div>
 <script>
@@ -171,7 +177,7 @@ createTotalValueDisplay();
 createGame();
 
 document.getElementById('backpackBtn').addEventListener('click', () => {
-    updateModalInventoryText();
+    updateModalInventoryGrid();
     document.getElementById('inventoryModal').style.display = 'flex';
     // Click animation: briefly scale down and up
     const icon = document.getElementById('backpackIcon');
@@ -187,16 +193,109 @@ document.getElementById('closeInventoryBtn').addEventListener('click', () => {
     document.getElementById('inventoryModal').style.display = 'none';
 });
 
-function updateModalInventoryText() {
+// Fish descriptions and icons
+const fishDetails = {
+    'Bluegill': {
+        icon: 'assets/greenFish.png',
+        desc: 'A common panfish found in lakes. Tasty and easy to catch.',
+        large: 'assets/greenFish.png'
+    },
+    'Crappie': {
+        icon: 'assets/greenFish.png',
+        desc: 'Small but valuable. Crappie are prized by anglers for their flavor.',
+        large: 'assets/greenFish.png'
+    },
+    'Catfish': {
+        icon: 'assets/greenFish.png',
+        desc: 'Bottom-dwelling fish known for their whiskers and resilience.',
+        large: 'assets/greenFish.png'
+    },
+    'Smallmouth bass': {
+        icon: 'assets/greenFish.png',
+        desc: 'A feisty fighter, smallmouth bass are fun to catch and delicious.',
+        large: 'assets/greenFish.png'
+    },
+    'Largemouth bass': {
+        icon: 'assets/greenFish.png',
+        desc: 'The trophy catch! Largemouth bass are the kings of freshwater.',
+        large: 'assets/greenFish.png'
+    }
+};
+
+function updateModalInventoryGrid() {
+    let grid = document.getElementById('inventoryGrid');
+    grid.innerHTML = '';
     let totalValue = 0;
-    let lines = [];
     for (let f of fishTypes) {
         let count = inventory[f.name];
         totalValue += count * f.price;
-        lines.push(`${f.name}: ${count} ($${f.price} ea)`);
+        let details = fishDetails[f.name];
+        let itemDiv = document.createElement('div');
+        itemDiv.className = 'inventoryItem';
+        itemDiv.style.background = '#333';
+        itemDiv.style.borderRadius = '12px';
+        itemDiv.style.padding = '12px';
+        itemDiv.style.display = 'flex';
+        itemDiv.style.flexDirection = 'column';
+        itemDiv.style.alignItems = 'center';
+        itemDiv.style.position = 'relative';
+        itemDiv.style.cursor = 'pointer';
+        itemDiv.onmouseenter = function() {
+            showItemDetailPanel(f.name, details, count, f.price);
+        };
+        itemDiv.onmouseleave = function() {
+            hideItemDetailPanel();
+        };
+        let img = document.createElement('img');
+        img.src = details.icon;
+        img.style.width = '48px';
+        img.style.height = '48px';
+        img.style.borderRadius = '8px';
+        img.style.boxShadow = '0 2px 8px #222';
+        itemDiv.appendChild(img);
+        let title = document.createElement('div');
+        title.textContent = f.name;
+        title.style.color = '#fff';
+        title.style.fontWeight = 'bold';
+        title.style.fontSize = '16px';
+        title.style.marginTop = '8px';
+        itemDiv.appendChild(title);
+        let qty = document.createElement('div');
+        qty.textContent = `x${count}`;
+        qty.style.color = '#8ff';
+        qty.style.fontSize = '15px';
+        qty.style.marginTop = '2px';
+        itemDiv.appendChild(qty);
+        let value = document.createElement('div');
+        value.textContent = `$${count * f.price}`;
+        value.style.color = '#fff';
+        value.style.fontSize = '15px';
+        value.style.marginTop = '2px';
+        itemDiv.appendChild(value);
+        grid.appendChild(itemDiv);
     }
-    lines.push(`Total Value: $${totalValue}`);
-    document.getElementById('modalInventoryText').textContent = lines.join('\n');
+    // Optionally show total value somewhere
+    let totalDiv = document.createElement('div');
+    totalDiv.textContent = `Total Value: $${totalValue}`;
+    totalDiv.style.color = '#fff';
+    totalDiv.style.fontWeight = 'bold';
+    totalDiv.style.fontSize = '18px';
+    totalDiv.style.gridColumn = '1/-1';
+    totalDiv.style.marginTop = '12px';
+    grid.appendChild(totalDiv);
+}
+
+function showItemDetailPanel(name, details, count, price) {
+    let panel = document.getElementById('itemDetailPanel');
+    document.getElementById('detailImg').src = details.large;
+    document.getElementById('detailTitle').textContent = name;
+    document.getElementById('detailValue').textContent = `Value: $${count * price} (${count} x $${price})`;
+    document.getElementById('detailDesc').textContent = details.desc;
+    panel.style.display = 'flex';
+}
+function hideItemDetailPanel() {
+    let panel = document.getElementById('itemDetailPanel');
+    panel.style.display = 'none';
 }
 
 function preload() {
