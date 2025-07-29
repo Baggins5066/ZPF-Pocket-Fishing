@@ -29,6 +29,21 @@ let game;
 let player, water, fishGroup, fishCount = 0, rodLevel = 1;
 let fishText, upgradeText, statusText;
 let isCasting = false;
+let fishTypes = [
+    { name: 'Bluegill', price: 1, weight: 7 },
+    { name: 'Crappie', price: 2, weight: 5 },
+    { name: 'Catfish', price: 2, weight: 5 },
+    { name: 'Smallmouth bass', price: 5, weight: 2 },
+    { name: 'Largemouth bass', price: 7, weight: 1 }
+];
+let inventory = {
+    'Bluegill': 0,
+    'Crappie': 0,
+    'Catfish': 0,
+    'Smallmouth bass': 0,
+    'Largemouth bass': 0
+};
+let inventoryText;
 
 function createGame() {
     const size = getGameSize();
@@ -78,6 +93,9 @@ function create() {
     fishText = this.add.text(16, 16, 'Fish: 0', { fontSize: '20px', color: '#fff' });
     upgradeText = this.add.text(16, 40, 'Rod Level: 1 (Cost: 10 fish)', { fontSize: '20px', color: '#fff' });
     statusText = this.add.text(16, 64, 'Status: Ready to cast!', { fontSize: '20px', color: '#fff' });
+    inventoryText = this.add.text(16, 88, 'Inventory:', { fontSize: '20px', color: '#fff' });
+
+    updateInventoryText();
 
     // Add labels next to sprites
     this.add.text(player.x + 40, player.y - 16, 'Fisher', { fontSize: '18px', color: '#fff' });
@@ -146,25 +164,48 @@ function castRod() {
 }
 
 function revealCatch(scene) {
-    // 40% chance to catch a fish
-    let caught = Math.random() < 0.4;
+    // Weighted random fish selection
+    let totalWeight = fishTypes.reduce((sum, f) => sum + f.weight, 0);
+    let rand = Math.random() * totalWeight;
+    let selectedFish = null;
+    for (let f of fishTypes) {
+        if (rand < f.weight) {
+            selectedFish = f;
+            break;
+        }
+        rand -= f.weight;
+    }
+    let caught = selectedFish !== null && Math.random() < 0.7; // 70% chance to catch something
     if (caught) {
-        fishCount++;
-        fishText.setText(`Fish: ${fishCount}`);
-        statusText.setText('Status: You caught a fish!');
+        inventory[selectedFish.name]++;
+        fishText.setText(`Fish: ${Object.values(inventory).reduce((a,b)=>a+b,0)}`);
+        statusText.setText(`Status: You caught a ${selectedFish.name}! ($${selectedFish.price})`);
         // Show fish sprite next to player with label
         let fishSprite = scene.add.sprite(player.x + 60, player.y + 32, 'fish');
-        scene.add.text(player.x + 80, player.y + 16, 'Fish', { fontSize: '18px', color: '#fff' });
+        scene.add.text(player.x + 80, player.y + 16, selectedFish.name, { fontSize: '18px', color: '#fff' });
         setTimeout(() => fishSprite.destroy(), 1200);
     } else {
         statusText.setText('Status: Nothing was caught.');
     }
+    updateInventoryText();
     updateUpgradeText();
     setTimeout(() => {
         statusText.setText('Status: Ready to cast!');
         isCasting = false;
         document.getElementById('castBtn').disabled = false;
     }, 1500);
+}
+
+function updateInventoryText() {
+    let totalValue = 0;
+    let lines = ['Inventory:'];
+    for (let f of fishTypes) {
+        let count = inventory[f.name];
+        totalValue += count * f.price;
+        lines.push(`${f.name}: ${count} ($${f.price} ea)`);
+    }
+    lines.push(`Total Value: $${totalValue}`);
+    inventoryText.setText(lines.join('\n'));
 }
 
 function update() {
