@@ -5,107 +5,115 @@
     <title>Zombie Fishing</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
     <style>
-        html, body { height: 100%; margin: 0; padding: 0; background: #333; }
-        body { width: 100vw; height: 100vh; overflow: hidden; display: flex; justify-content: center; align-items: center; }
-        canvas { display: block; max-width: 100vw; max-height: 100vh; margin: auto; }
-    #backpackBtn:hover #backpackIcon {
-        transform: scale(1.18) rotate(-8deg);
-        filter: drop-shadow(0 4px 16px #44f);
-    }
-    #backpackBtn:active #backpackIcon {
-        transform: scale(0.92) rotate(8deg);
-        filter: drop-shadow(0 2px 8px #222);
-    }
-    #backpackBtn:hover #backpackIcon {
-        transform: scale(1.18) rotate(-8deg);
-        filter: drop-shadow(0 4px 16px #44f);
-    }
-    #backpackBtn:active #backpackIcon {
-        transform: scale(0.92) rotate(8deg);
-        filter: drop-shadow(0 2px 8px #222);
-    }
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    background: #2a3d55;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+}
+body {
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #2a3d55;
+}
+        #gameContainer {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #333;
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+            margin: 0 auto;
+            background: #333;
+        }
+        #backpackBtn:hover #backpackIcon {
+            transform: scale(1.18) rotate(-8deg);
+            filter: drop-shadow(0 4px 16px #44f);
+        }
+        #backpackBtn:active #backpackIcon {
+            transform: scale(0.92) rotate(8deg);
+            filter: drop-shadow(0 2px 8px #222);
+        }
+        #backpackBtn:hover #backpackIcon {
+            transform: scale(1.18) rotate(-8deg);
+            filter: drop-shadow(0 4px 16px #44f);
+        }
+        #backpackBtn:active #backpackIcon {
+            transform: scale(0.92) rotate(8deg);
+            filter: drop-shadow(0 2px 8px #222);
+        }
     </style>
 </head>
 <body>
-<button id="backpackBtn" style="position:absolute;top:50%;left:10px;transform:translateY(-50%);z-index:11;width:56px;height:56px;padding:0;background:transparent;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;">
-    <img src="assets/backpack.png" id="backpackIcon" alt="Backpack" style="width:48px;height:48px;transition:transform 0.18s cubic-bezier(.5,2,.5,1);filter:drop-shadow(0 2px 8px #222);">
-</button>
-<button id="castBtn" style="position:absolute;top:20px;left:50%;transform:translateX(-50%);z-index:10;font-size:24px;padding:10px 30px;">Cast</button>
-<div id="inventoryModal" style="display:none;position:absolute;top:50%;left:76px;transform:translateY(-50%);z-index:100;width:240px;">
-  <div id="inventoryModalInner" style="background:#222;padding:16px 12px;border-radius:14px;box-shadow:0 4px 24px #000;min-width:90px;max-width:240px;width:240px;max-height:320px;overflow-y:auto;display:flex;flex-direction:column;align-items:center;position:relative;transition:opacity 0.5s;">
-    <div id="inventoryGrid" style="display:grid;grid-template-columns:repeat(4, 1fr);gap:12px;width:100%;"></div>
-  </div>
-</div>
+<div id="gameContainer"></div>
 <script>
-function getGameSize() {
+function resizeGameContainer() {
+    // Get window size
     const w = window.innerWidth;
     const h = window.innerHeight;
-    let width = w;
-    let height = Math.round(w * 9 / 16);
-    if (height > h) {
-        height = h;
-        width = Math.round(h * 16 / 9);
+    // Calculate max 16:9 area
+    let gameW = w;
+    let gameH = Math.round(w * 9 / 16);
+    if (gameH > h) {
+        gameH = h;
+        gameW = Math.round(h * 16 / 9);
     }
-    return { width, height };
+    const gameContainer = document.getElementById('gameContainer');
+    gameContainer.style.width = gameW + 'px';
+    gameContainer.style.height = gameH + 'px';
+    gameContainer.style.left = ((w - gameW) / 2) + 'px';
+    gameContainer.style.top = ((h - gameH) / 2) + 'px';
+    gameContainer.style.position = 'absolute';
 }
+window.addEventListener('resize', resizeGameContainer);
+window.addEventListener('DOMContentLoaded', resizeGameContainer);
 
-let game;
-let player, fishGroup, fishCount = 0, rodLevel = 1;
-let fishText, upgradeText, statusText;
-let isCasting = false;
-let fishTypes = [
-    { name: 'Bluegill', price: 1, weight: 7 },
-    { name: 'Crappie', price: 2, weight: 5 },
-    { name: 'Catfish', price: 2, weight: 5 },
-    { name: 'Smallmouth bass', price: 5, weight: 2 },
-    { name: 'Largemouth bass', price: 7, weight: 1 }
-];
-let inventory = {
-    'Bluegill': 0,
-    'Crappie': 0,
-    'Catfish': 0,
-    'Smallmouth bass': 0,
-    'Largemouth bass': 0
-};
-let inventoryText;
-
-function createGame() {
-    const size = getGameSize();
-    const config = {
-        type: Phaser.AUTO,
-        width: size.width,
-        height: size.height,
-        scene: {
-            preload: preload,
-            create: create,
-            update: update
-        },
-        physics: {
-            default: 'arcade',
-            arcade: { gravity: { y: 0 } }
+// Move UI elements into gameContainer
+function setupGameContainerUI() {
+    const gameContainer = document.getElementById('gameContainer');
+    // Move canvas into container after Phaser creates it
+    const moveCanvas = () => {
+        const canvas = document.querySelector('canvas');
+        if (canvas && canvas.parentElement !== gameContainer) {
+            gameContainer.appendChild(canvas);
         }
     };
-    game = new Phaser.Game(config);
-}
-
-window.addEventListener('resize', () => {
-    if (game) {
-        const size = getGameSize();
-        game.scale.resize(size.width, size.height);
+    // Create/move UI elements
+    let backpackBtn = document.getElementById('backpackBtn');
+    if (!backpackBtn) {
+        backpackBtn = document.createElement('button');
+        backpackBtn.id = 'backpackBtn';
+        backpackBtn.style.position = 'absolute';
+        backpackBtn.style.zIndex = '11';
+        backpackBtn.style.padding = '0';
+        backpackBtn.style.background = 'transparent';
+        backpackBtn.style.border = 'none';
+        backpackBtn.style.cursor = 'pointer';
+        backpackBtn.style.display = 'flex';
+        backpackBtn.style.alignItems = 'center';
+        backpackBtn.style.justifyContent = 'center';
+        let backpackIcon = document.createElement('img');
+        backpackIcon.src = 'assets/backpack.png';
+        backpackIcon.id = 'backpackIcon';
+        backpackIcon.alt = 'Backpack';
+        backpackIcon.style.transition = 'transform 0.18s cubic-bezier(.5,2,.5,1)';
+        backpackIcon.style.filter = 'drop-shadow(0 2px 8px #222)';
+        backpackBtn.appendChild(backpackIcon);
+        gameContainer.appendChild(backpackBtn);
+    } else if (backpackBtn.parentElement !== gameContainer) {
+        gameContainer.appendChild(backpackBtn);
     }
-});
-
-
-
-document.getElementById('castBtn').addEventListener('click', () => {
-    if (!isCasting) {
-        castRod();
-    }
-});
-
-
-// Ensure badge is created and initialized to 0 before game starts
-function createInventoryBadge() {
+    // Ensure badge is created and initialized to 0 before game starts
     let badge = document.getElementById('inventoryBadge');
     if (!badge) {
         badge = document.createElement('span');
@@ -128,27 +136,266 @@ function createInventoryBadge() {
         badge.style.pointerEvents = 'none';
         badge.style.transition = 'transform 0.18s cubic-bezier(.5,2,.5,1)';
         badge.textContent = '0';
-        document.getElementById('backpackBtn').appendChild(badge);
+        backpackBtn.appendChild(badge);
+    }
+    // Backpack button event listener
+    backpackBtn.onclick = function() {
+        showInventoryModal();
+        // Click animation: briefly scale down and up
+        const icon = document.getElementById('backpackIcon');
+        icon.style.transition = 'transform 0.12s cubic-bezier(.5,2,.5,1)';
+        icon.style.transform = 'scale(0.92) rotate(8deg)';
+        setTimeout(() => {
+            icon.style.transition = 'transform 0.18s cubic-bezier(.5,2,.5,1)';
+            icon.style.transform = '';
+        }, 120);
+    };
+    let castBtn = document.getElementById('castBtn');
+    if (!castBtn) {
+        castBtn = document.createElement('button');
+        castBtn.id = 'castBtn';
+        castBtn.textContent = 'Cast';
+        castBtn.style.position = 'absolute';
+        castBtn.style.zIndex = '10';
+        gameContainer.appendChild(castBtn);
+    } else if (castBtn.parentElement !== gameContainer) {
+        gameContainer.appendChild(castBtn);
+    }
+    // Always set up event listener after creation/move
+    castBtn.onclick = function() {
+        if (!isCasting) {
+            castRod();
+        }
+    };
+    let inventoryModal = document.getElementById('inventoryModal');
+    if (!inventoryModal) {
+        inventoryModal = document.createElement('div');
+        inventoryModal.id = 'inventoryModal';
+        inventoryModal.style.position = 'absolute';
+        inventoryModal.style.zIndex = '100';
+        inventoryModal.style.display = 'none';
+        let inner = document.createElement('div');
+        inner.id = 'inventoryModalInner';
+        inner.style.position = 'relative';
+        inner.style.background = '#333';
+        inner.style.borderRadius = '14px';
+        inner.style.boxShadow = '0 4px 32px #000';
+        let grid = document.createElement('div');
+        grid.id = 'inventoryGrid';
+        inner.appendChild(grid);
+        inventoryModal.appendChild(inner);
+        gameContainer.appendChild(inventoryModal);
+    } else if (inventoryModal.parentElement !== gameContainer) {
+        gameContainer.appendChild(inventoryModal);
+    }
+    moveCanvas();
+}
+function getGameSize() {
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    let width = w;
+    let height = Math.round(w * 9 / 16);
+    if (height > h) {
+        height = h;
+        width = Math.round(h * 16 / 9);
+    }
+    return { width, height };
+}
+
+let game;
+let player, fishGroup, fishCount = 0, rodLevel = 1;
+let fisherText, fishText, upgradeText, statusText;
+let isCasting = false;
+let fishTypes = [
+    { name: 'Bluegill', price: 1, weight: 7 },
+    { name: 'Crappie', price: 2, weight: 5 },
+    { name: 'Catfish', price: 2, weight: 5 },
+    { name: 'Smallmouth bass', price: 5, weight: 2 },
+    { name: 'Largemouth bass', price: 7, weight: 1 }
+];
+let inventory = {
+    'Bluegill': 0,
+    'Crappie': 0,
+    'Catfish': 0,
+    'Smallmouth bass': 0,
+    'Largemouth bass': 0
+};
+let inventoryText;
+let scaleFactor = 1;
+
+function scaleUIElements() {
+    // Backpack button and icon
+    const backpackBtn = document.getElementById('backpackBtn');
+    const backpackIcon = document.getElementById('backpackIcon');
+    if (backpackBtn && backpackIcon) {
+        backpackBtn.style.width = (56 * scaleFactor) + 'px';
+        backpackBtn.style.height = (56 * scaleFactor) + 'px';
+        backpackIcon.style.width = (48 * scaleFactor) + 'px';
+        backpackIcon.style.height = (48 * scaleFactor) + 'px';
+    }
+    // Inventory badge
+    const badge = document.getElementById('inventoryBadge');
+    if (badge) {
+        badge.style.left = (38 * scaleFactor) + 'px';
+        badge.style.top = (6 * scaleFactor) + 'px';
+        badge.style.minWidth = (22 * scaleFactor) + 'px';
+        badge.style.height = (22 * scaleFactor) + 'px';
+        badge.style.fontSize = (16 * scaleFactor) + 'px';
+    }
+    // Cast button
+    const castBtn = document.getElementById('castBtn');
+    if (castBtn) {
+        castBtn.style.fontSize = (24 * scaleFactor) + 'px';
+        castBtn.style.padding = (10 * scaleFactor) + 'px ' + (30 * scaleFactor) + 'px';
+    }
+    // Total value display
+    const valueDiv = document.getElementById('totalValueDiv');
+    if (valueDiv) {
+        valueDiv.style.left = (10 * scaleFactor) + 'px';
+        valueDiv.style.top = 'calc(50% + ' + (36 * scaleFactor) + 'px)';
+        valueDiv.style.fontSize = (18 * scaleFactor) + 'px';
+    }
+    // Inventory modal and grid
+    const modal = document.getElementById('inventoryModal');
+    const inner = document.getElementById('inventoryModalInner');
+    const grid = document.getElementById('inventoryGrid');
+    if (modal && inner && grid) {
+        modal.style.width = (240 * scaleFactor) + 'px';
+        inner.style.padding = (16 * scaleFactor) + 'px ' + (12 * scaleFactor) + 'px';
+        inner.style.borderRadius = (14 * scaleFactor) + 'px';
+        inner.style.minWidth = (90 * scaleFactor) + 'px';
+        inner.style.maxWidth = (240 * scaleFactor) + 'px';
+        inner.style.width = (240 * scaleFactor) + 'px';
+        inner.style.maxHeight = (320 * scaleFactor) + 'px';
+        grid.style.gap = (12 * scaleFactor) + 'px';
+    }
+    // Inventory items
+    if (grid) {
+        Array.from(grid.children).forEach(itemDiv => {
+            if (itemDiv.className === 'inventoryItem') {
+                itemDiv.style.width = (48 * scaleFactor) + 'px';
+                itemDiv.style.height = (48 * scaleFactor) + 'px';
+                const img = itemDiv.querySelector('img');
+                if (img) {
+                    img.style.width = (40 * scaleFactor) + 'px';
+                    img.style.height = (40 * scaleFactor) + 'px';
+                    img.style.borderRadius = (8 * scaleFactor) + 'px';
+                }
+                const badge = itemDiv.querySelector('span');
+                if (badge) {
+                    badge.style.minWidth = (18 * scaleFactor) + 'px';
+                    badge.style.height = (18 * scaleFactor) + 'px';
+                    badge.style.fontSize = (13 * scaleFactor) + 'px';
+                }
+            } else if (itemDiv.textContent === 'Inventory is empty') {
+                itemDiv.style.fontSize = (18 * scaleFactor) + 'px';
+                itemDiv.style.margin = (32 * scaleFactor) + 'px 0';
+            }
+        });
     }
 }
+
+function createGame() {
+    const size = getGameSize();
+    scaleFactor = size.width / 800; // 800 is the original base width
+    const config = {
+        type: Phaser.AUTO,
+        width: size.width,
+        height: size.height,
+        scene: {
+            preload: preload,
+            create: create,
+            update: update
+        },
+        physics: {
+            default: 'arcade',
+            arcade: { gravity: { y: 0 } }
+        }
+    };
+    game = new Phaser.Game(config);
+    // Wait for Phaser canvas to be created before scaling UI and game objects
+    setTimeout(() => {
+        scaleUIElements();
+        setupGameContainerUI();
+        positionUIElements();
+        updatePhaserTextPositions();
+    }, 0);
+}
+
+window.addEventListener('resize', () => {
+    if (game) {
+        const size = getGameSize();
+        scaleFactor = size.width / 800;
+        game.scale.resize(size.width, size.height);
+        // Update sprite scales and positions on resize
+        if (player) {
+            player.setScale(scaleFactor);
+            player.setPosition(size.width * 0.5, size.height * 0.25);
+        }
+        if (fishGroup) {
+            fishGroup.getChildren().forEach(fish => {
+                fish.setScale(scaleFactor);
+            });
+        }
+        scaleUIElements();
+        positionUIElements();
+        updatePhaserTextPositions();
+    }
+});
+// Position UI elements relative to game window
+function positionUIElements() {
+    const gameContainer = document.getElementById('gameContainer');
+    const canvas = gameContainer.querySelector('canvas');
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    // Backpack button
+    const backpackBtn = document.getElementById('backpackBtn');
+    if (backpackBtn) {
+        backpackBtn.style.left = (10 * scaleFactor) + 'px';
+        backpackBtn.style.top = (rect.height * 0.5 - 28 * scaleFactor) + 'px';
+        backpackBtn.style.transform = '';
+    }
+    // Cast button
+    const castBtn = document.getElementById('castBtn');
+    if (castBtn) {
+        castBtn.style.left = (rect.width * 0.5 - (castBtn.offsetWidth / 2)) + 'px';
+        castBtn.style.top = (20 * scaleFactor) + 'px';
+        castBtn.style.transform = '';
+    }
+    // Inventory modal
+    const inventoryModal = document.getElementById('inventoryModal');
+    if (inventoryModal) {
+        inventoryModal.style.left = (76 * scaleFactor) + 'px';
+        inventoryModal.style.top = (rect.height * 0.5 - (parseFloat(inventoryModal.style.height || 0) / 2)) + 'px';
+        inventoryModal.style.transform = '';
+    }
+    // Total value display
+    const valueDiv = document.getElementById('totalValueDiv');
+    if (valueDiv) {
+        valueDiv.style.left = (10 * scaleFactor) + 'px';
+        valueDiv.style.top = (rect.height * 0.5 + 36 * scaleFactor) + 'px';
+        valueDiv.style.transform = 'translateY(-50%)';
+    }
+}
+
+
+
+// Ensure badge is created and initialized to 0 before game starts
 
 // Create total value display under backpack button
 function createTotalValueDisplay() {
     let valueDiv = document.getElementById('totalValueDiv');
+    const gameContainer = document.getElementById('gameContainer');
     if (!valueDiv) {
         valueDiv = document.createElement('div');
         valueDiv.id = 'totalValueDiv';
         valueDiv.style.position = 'absolute';
-        valueDiv.style.left = '10px';
-        valueDiv.style.top = 'calc(50% + 36px)';
-        valueDiv.style.transform = 'translateY(-50%)';
         valueDiv.style.zIndex = '11';
         valueDiv.style.color = '#fff';
-        valueDiv.style.fontSize = '18px';
         valueDiv.style.fontWeight = 'bold';
         valueDiv.style.textShadow = '0 2px 8px #222';
         valueDiv.textContent = 'Total Value: $0';
-        document.body.appendChild(valueDiv);
+        gameContainer.appendChild(valueDiv);
     }
     updateTotalValueDisplay();
 }
@@ -161,12 +408,25 @@ function updateTotalValueDisplay() {
     let valueDiv = document.getElementById('totalValueDiv');
     if (valueDiv) {
         valueDiv.textContent = `$${totalValue}`;
+        // Position and scale
+        const gameContainer = document.getElementById('gameContainer');
+        const canvas = gameContainer.querySelector('canvas');
+        if (canvas) {
+            const rect = canvas.getBoundingClientRect();
+            valueDiv.style.left = (10 * scaleFactor) + 'px';
+            valueDiv.style.top = (rect.height * 0.5 + 36 * scaleFactor) + 'px';
+            valueDiv.style.transform = 'translateY(-50%)';
+            valueDiv.style.fontSize = (18 * scaleFactor) + 'px';
+        }
     }
 }
 
-createInventoryBadge();
-createTotalValueDisplay();
-createGame();
+
+// Delay UI setup until DOM is ready
+window.addEventListener('DOMContentLoaded', () => {
+    createTotalValueDisplay();
+    createGame();
+});
 
 let inventoryFadeTimeout = null;
 let isMouseOverInventory = false;
@@ -213,17 +473,6 @@ function startInventoryFadeTimer() {
     }, 5000);
 }
 
-document.getElementById('backpackBtn').addEventListener('click', () => {
-    showInventoryModal();
-    // Click animation: briefly scale down and up
-    const icon = document.getElementById('backpackIcon');
-    icon.style.transition = 'transform 0.12s cubic-bezier(.5,2,.5,1)';
-    icon.style.transform = 'scale(0.92) rotate(8deg)';
-    setTimeout(() => {
-        icon.style.transition = 'transform 0.18s cubic-bezier(.5,2,.5,1)';
-        icon.style.transform = '';
-    }, 120);
-});
 
 // Close inventory when clicking outside
 document.addEventListener('mousedown', function(e) {
@@ -278,8 +527,8 @@ function updateModalInventoryGrid() {
         let itemDiv = document.createElement('div');
         itemDiv.className = 'inventoryItem';
         itemDiv.style.position = 'relative';
-        itemDiv.style.width = '48px';
-        itemDiv.style.height = '48px';
+        itemDiv.style.width = (48 * scaleFactor) + 'px';
+        itemDiv.style.height = (48 * scaleFactor) + 'px';
         itemDiv.style.display = 'flex';
         itemDiv.style.alignItems = 'center';
         itemDiv.style.justifyContent = 'center';
@@ -293,9 +542,9 @@ function updateModalInventoryGrid() {
         };
         let img = document.createElement('img');
         img.src = details.icon;
-        img.style.width = '40px';
-        img.style.height = '40px';
-        img.style.borderRadius = '8px';
+        img.style.width = (40 * scaleFactor) + 'px';
+        img.style.height = (40 * scaleFactor) + 'px';
+        img.style.borderRadius = (8 * scaleFactor) + 'px';
         img.style.boxShadow = '0 2px 8px #222';
         itemDiv.appendChild(img);
         let badge = document.createElement('span');
@@ -303,11 +552,11 @@ function updateModalInventoryGrid() {
         badge.style.position = 'absolute';
         badge.style.right = '2px';
         badge.style.bottom = '2px';
-        badge.style.minWidth = '18px';
-        badge.style.height = '18px';
+        badge.style.minWidth = (18 * scaleFactor) + 'px';
+        badge.style.height = (18 * scaleFactor) + 'px';
         badge.style.background = '#44f';
         badge.style.color = '#fff';
-        badge.style.fontSize = '13px';
+        badge.style.fontSize = (13 * scaleFactor) + 'px';
         badge.style.fontWeight = 'bold';
         badge.style.borderRadius = '50%';
         badge.style.display = 'flex';
@@ -322,11 +571,11 @@ function updateModalInventoryGrid() {
         let emptyMsg = document.createElement('div');
         emptyMsg.textContent = 'Inventory is empty';
         emptyMsg.style.color = '#aaa';
-        emptyMsg.style.fontSize = '18px';
+        emptyMsg.style.fontSize = (18 * scaleFactor) + 'px';
         emptyMsg.style.fontWeight = 'bold';
         emptyMsg.style.textAlign = 'center';
         emptyMsg.style.gridColumn = '1 / -1';
-        emptyMsg.style.margin = '32px 0';
+        emptyMsg.style.margin = (32 * scaleFactor) + 'px 0';
         grid.appendChild(emptyMsg);
     }
 }
@@ -402,17 +651,21 @@ function preload() {
 }
 
 function create() {
-    player = this.physics.add.sprite(400, 200, 'player').setImmovable(true);
+    const size = getGameSize();
+    player = this.physics.add.sprite(size.width * 0.5, size.height * 0.25, 'player').setImmovable(true);
+    player.setScale(scaleFactor);
     fishGroup = this.physics.add.group();
 
     // Add label next to player sprite
-    this.add.text(player.x + 40, player.y - 16, 'Fisher', { fontSize: '18px', color: '#fff' });
+    fisherText = this.add.text(player.x + 40 * scaleFactor, player.y - 16 * scaleFactor, 'Fisher', { fontSize: 18 * scaleFactor, color: '#fff' });
     this.input.on('pointerdown', upgradeRod, this);
 }
 
 function spawnFish() {
-    const x = Phaser.Math.Between(300, 500);
-    const fish = fishGroup.create(x, 500, 'fish').setVelocityY(-50);
+    const size = getGameSize();
+    const x = Phaser.Math.Between(size.width * 0.375, size.width * 0.625);
+    const fish = fishGroup.create(x, size.height * 0.8, 'fish').setVelocityY(-50 * scaleFactor);
+    fish.setScale(scaleFactor);
     fish.setData('value', 1);
 }
 
@@ -437,9 +690,10 @@ function castRod() {
     document.getElementById('castBtn').disabled = true;
     // Animate rod down (move player sprite)
     let scene = game.scene.scenes[0];
+    const size = getGameSize();
     scene.tweens.add({
         targets: player,
-        y: 400,
+        y: size.height * 0.5,
         duration: 500,
         onComplete: () => {
             // Wait random 1-5 seconds
@@ -448,7 +702,7 @@ function castRod() {
                 // Animate rod up
                 scene.tweens.add({
                     targets: player,
-                    y: 200,
+                    y: size.height * 0.25,
                     duration: 500,
                     onComplete: () => {
                         // Enable cast button immediately after rod returns
@@ -478,8 +732,9 @@ function revealCatch(scene) {
     if (caught) {
         inventory[selectedFish.name]++;
         // Show fish sprite next to player with label
-        let fishSprite = scene.add.sprite(player.x + 60, player.y + 32, 'fish');
-        scene.add.text(player.x + 80, player.y + 16, selectedFish.name, { fontSize: '18px', color: '#fff' });
+        let fishSprite = scene.add.sprite(player.x + 60 * scaleFactor, player.y + 32 * scaleFactor, 'fish');
+        fishSprite.setScale(scaleFactor);
+        scene.add.text(player.x + 80 * scaleFactor, player.y + 16 * scaleFactor, selectedFish.name, { fontSize: 18 * scaleFactor, color: '#fff' });
         setTimeout(() => fishSprite.destroy(), 1200);
     }
     updateInventoryText();
@@ -493,6 +748,15 @@ function updateInventoryText() {
         badge.textContent = totalCount;
     }
     updateTotalValueDisplay();
+}
+
+function updatePhaserTextPositions() {
+    const size = getGameSize();
+    if (fisherText && player) {
+        fisherText.setFontSize(18 * scaleFactor);
+        fisherText.setPosition(player.x + 40 * scaleFactor, player.y - 16 * scaleFactor);
+    }
+    // Add more text objects here if needed
 }
 
 function update() {
