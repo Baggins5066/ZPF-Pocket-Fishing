@@ -31,17 +31,9 @@
     <img src="assets/backpack.png" id="backpackIcon" alt="Backpack" style="width:48px;height:48px;transition:transform 0.18s cubic-bezier(.5,2,.5,1);filter:drop-shadow(0 2px 8px #222);">
 </button>
 <button id="castBtn" style="position:absolute;top:20px;left:50%;transform:translateX(-50%);z-index:10;font-size:24px;padding:10px 30px;">Cast</button>
-<div id="inventoryModal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.6);z-index:100;justify-content:center;align-items:center;">
-  <div style="background:#222;padding:32px 40px;border-radius:16px;box-shadow:0 4px 32px #000;min-width:340px;max-width:90vw;position:relative;">
-    <h2 style="color:#fff;margin-top:0;margin-bottom:16px;">Inventory</h2>
-    <div id="inventoryGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:18px;margin-bottom:24px;"></div>
-    <button id="closeInventoryBtn" style="font-size:20px;padding:8px 24px;background:#444;color:#fff;border-radius:8px;border:none;cursor:pointer;">Close</button>
-    <div id="itemDetailPanel" style="display:none;position:absolute;top:32px;right:-320px;width:260px;background:#222;border-radius:16px;box-shadow:0 4px 32px #000;padding:24px;z-index:101;flex-direction:column;align-items:center;">
-      <img id="detailImg" src="" style="width:96px;height:96px;margin-bottom:12px;border-radius:12px;box-shadow:0 2px 8px #222;">
-      <div id="detailTitle" style="color:#fff;font-size:22px;font-weight:bold;margin-bottom:8px;"></div>
-      <div id="detailValue" style="color:#8ff;font-size:18px;margin-bottom:8px;"></div>
-      <div id="detailDesc" style="color:#ccc;font-size:16px;"></div>
-    </div>
+<div id="inventoryModal" style="display:none;position:absolute;top:50%;left:76px;transform:translateY(-50%);z-index:100;width:240px;">
+  <div id="inventoryModalInner" style="background:#222;padding:16px 12px;border-radius:14px;box-shadow:0 4px 24px #000;min-width:90px;max-width:240px;width:240px;max-height:320px;overflow-y:auto;display:flex;flex-direction:column;align-items:center;position:relative;transition:opacity 0.5s;">
+    <div id="inventoryGrid" style="display:grid;grid-template-columns:repeat(4, 1fr);gap:12px;width:100%;"></div>
   </div>
 </div>
 <script>
@@ -176,9 +168,53 @@ createInventoryBadge();
 createTotalValueDisplay();
 createGame();
 
-document.getElementById('backpackBtn').addEventListener('click', () => {
+let inventoryFadeTimeout = null;
+let isMouseOverInventory = false;
+
+function showInventoryModal() {
     updateModalInventoryGrid();
-    document.getElementById('inventoryModal').style.display = 'flex';
+    const modal = document.getElementById('inventoryModal');
+    const inner = document.getElementById('inventoryModalInner');
+    modal.style.display = 'block';
+    inner.style.opacity = '1';
+    clearTimeout(inventoryFadeTimeout);
+    setupInventoryFade();
+}
+
+function setupInventoryFade() {
+    const modal = document.getElementById('inventoryModal');
+    const inner = document.getElementById('inventoryModalInner');
+    // Mouse events
+    inner.onmouseenter = () => {
+        isMouseOverInventory = true;
+        clearTimeout(inventoryFadeTimeout);
+        inner.style.opacity = '1';
+    };
+    inner.onmouseleave = () => {
+        isMouseOverInventory = false;
+        startInventoryFadeTimer();
+    };
+    startInventoryFadeTimer();
+}
+
+function startInventoryFadeTimer() {
+    const modal = document.getElementById('inventoryModal');
+    const inner = document.getElementById('inventoryModalInner');
+    clearTimeout(inventoryFadeTimeout);
+    inventoryFadeTimeout = setTimeout(() => {
+        if (!isMouseOverInventory && modal.style.display !== 'none') {
+            inner.style.opacity = '0';
+            setTimeout(() => {
+                modal.style.display = 'none';
+                inner.style.opacity = '1';
+                hideItemDetailPanel();
+            }, 500);
+        }
+    }, 5000);
+}
+
+document.getElementById('backpackBtn').addEventListener('click', () => {
+    showInventoryModal();
     // Click animation: briefly scale down and up
     const icon = document.getElementById('backpackIcon');
     icon.style.transition = 'transform 0.12s cubic-bezier(.5,2,.5,1)';
@@ -189,9 +225,17 @@ document.getElementById('backpackBtn').addEventListener('click', () => {
     }, 120);
 });
 
-document.getElementById('closeInventoryBtn').addEventListener('click', () => {
-    document.getElementById('inventoryModal').style.display = 'none';
+// Close inventory when clicking outside
+document.addEventListener('mousedown', function(e) {
+    const modal = document.getElementById('inventoryModal');
+    const inner = document.getElementById('inventoryModalInner');
+    if (modal.style.display !== 'none' && !inner.contains(e.target) && e.target.id !== 'backpackBtn' && e.target.id !== 'backpackIcon') {
+        modal.style.display = 'none';
+        hideItemDetailPanel();
+    }
 });
+
+// Remove closeInventoryBtn logic (no close button)
 
 // Fish descriptions and icons
 const fishDetails = {
@@ -225,77 +269,131 @@ const fishDetails = {
 function updateModalInventoryGrid() {
     let grid = document.getElementById('inventoryGrid');
     grid.innerHTML = '';
-    let totalValue = 0;
+    let hasItems = false;
     for (let f of fishTypes) {
         let count = inventory[f.name];
-        totalValue += count * f.price;
+        if (count <= 0) continue;
+        hasItems = true;
         let details = fishDetails[f.name];
         let itemDiv = document.createElement('div');
         itemDiv.className = 'inventoryItem';
-        itemDiv.style.background = '#333';
-        itemDiv.style.borderRadius = '12px';
-        itemDiv.style.padding = '12px';
-        itemDiv.style.display = 'flex';
-        itemDiv.style.flexDirection = 'column';
-        itemDiv.style.alignItems = 'center';
         itemDiv.style.position = 'relative';
+        itemDiv.style.width = '48px';
+        itemDiv.style.height = '48px';
+        itemDiv.style.display = 'flex';
+        itemDiv.style.alignItems = 'center';
+        itemDiv.style.justifyContent = 'center';
         itemDiv.style.cursor = 'pointer';
-        itemDiv.onmouseenter = function() {
-            showItemDetailPanel(f.name, details, count, f.price);
+        // Hover for detail panel
+        itemDiv.onmouseenter = function(e) {
+            showItemDetailPanel(f.name, details, count, f.price, itemDiv);
         };
         itemDiv.onmouseleave = function() {
             hideItemDetailPanel();
         };
         let img = document.createElement('img');
         img.src = details.icon;
-        img.style.width = '48px';
-        img.style.height = '48px';
+        img.style.width = '40px';
+        img.style.height = '40px';
         img.style.borderRadius = '8px';
         img.style.boxShadow = '0 2px 8px #222';
         itemDiv.appendChild(img);
-        let title = document.createElement('div');
-        title.textContent = f.name;
-        title.style.color = '#fff';
-        title.style.fontWeight = 'bold';
-        title.style.fontSize = '16px';
-        title.style.marginTop = '8px';
-        itemDiv.appendChild(title);
-        let qty = document.createElement('div');
-        qty.textContent = `x${count}`;
-        qty.style.color = '#8ff';
-        qty.style.fontSize = '15px';
-        qty.style.marginTop = '2px';
-        itemDiv.appendChild(qty);
-        let value = document.createElement('div');
-        value.textContent = `$${count * f.price}`;
-        value.style.color = '#fff';
-        value.style.fontSize = '15px';
-        value.style.marginTop = '2px';
-        itemDiv.appendChild(value);
+        let badge = document.createElement('span');
+        badge.textContent = count;
+        badge.style.position = 'absolute';
+        badge.style.right = '2px';
+        badge.style.bottom = '2px';
+        badge.style.minWidth = '18px';
+        badge.style.height = '18px';
+        badge.style.background = '#44f';
+        badge.style.color = '#fff';
+        badge.style.fontSize = '13px';
+        badge.style.fontWeight = 'bold';
+        badge.style.borderRadius = '50%';
+        badge.style.display = 'flex';
+        badge.style.alignItems = 'center';
+        badge.style.justifyContent = 'center';
+        badge.style.boxShadow = '0 2px 8px #222';
+        badge.style.pointerEvents = 'none';
+        itemDiv.appendChild(badge);
         grid.appendChild(itemDiv);
     }
-    // Optionally show total value somewhere
-    let totalDiv = document.createElement('div');
-    totalDiv.textContent = `Total Value: $${totalValue}`;
-    totalDiv.style.color = '#fff';
-    totalDiv.style.fontWeight = 'bold';
-    totalDiv.style.fontSize = '18px';
-    totalDiv.style.gridColumn = '1/-1';
-    totalDiv.style.marginTop = '12px';
-    grid.appendChild(totalDiv);
+    if (!hasItems) {
+        let emptyMsg = document.createElement('div');
+        emptyMsg.textContent = 'Inventory is empty';
+        emptyMsg.style.color = '#aaa';
+        emptyMsg.style.fontSize = '18px';
+        emptyMsg.style.fontWeight = 'bold';
+        emptyMsg.style.textAlign = 'center';
+        emptyMsg.style.gridColumn = '1 / -1';
+        emptyMsg.style.margin = '32px 0';
+        grid.appendChild(emptyMsg);
+    }
 }
 
-function showItemDetailPanel(name, details, count, price) {
-    let panel = document.getElementById('itemDetailPanel');
-    document.getElementById('detailImg').src = details.large;
-    document.getElementById('detailTitle').textContent = name;
-    document.getElementById('detailValue').textContent = `Value: $${count * price} (${count} x $${price})`;
-    document.getElementById('detailDesc').textContent = details.desc;
-    panel.style.display = 'flex';
+// Create floating detail panel on hover
+let detailPanel = null;
+function showItemDetailPanel(name, details, count, price, anchorDiv) {
+    hideItemDetailPanel();
+    detailPanel = document.createElement('div');
+    detailPanel.style.position = 'fixed';
+    const rect = anchorDiv.getBoundingClientRect();
+    detailPanel.style.left = (rect.right + 12) + 'px';
+    detailPanel.style.top = (rect.top - 8) + 'px';
+    detailPanel.style.background = '#222';
+    detailPanel.style.borderRadius = '16px';
+    detailPanel.style.boxShadow = '0 4px 32px #000';
+    detailPanel.style.padding = '24px';
+    detailPanel.style.zIndex = '999';
+    detailPanel.style.display = 'flex';
+    detailPanel.style.flexDirection = 'column';
+    detailPanel.style.alignItems = 'center';
+    detailPanel.style.minWidth = '180px';
+    detailPanel.style.maxWidth = '260px';
+    // Large image
+    let img = document.createElement('img');
+    img.src = details.large;
+    img.style.width = '96px';
+    img.style.height = '96px';
+    img.style.marginBottom = '12px';
+    img.style.borderRadius = '12px';
+    img.style.boxShadow = '0 2px 8px #222';
+    detailPanel.appendChild(img);
+    // Name
+    let title = document.createElement('div');
+    title.textContent = name;
+    title.style.color = '#fff';
+    title.style.fontSize = '22px';
+    title.style.fontWeight = 'bold';
+    title.style.marginBottom = '8px';
+    detailPanel.appendChild(title);
+    // Quantity
+    let qty = document.createElement('div');
+    qty.textContent = `Quantity: ${count}`;
+    qty.style.color = '#8ff';
+    qty.style.fontSize = '18px';
+    qty.style.marginBottom = '8px';
+    detailPanel.appendChild(qty);
+    // Value
+    let value = document.createElement('div');
+    value.textContent = `Value: $${count * price} (${count} x $${price})`;
+    value.style.color = '#fff';
+    value.style.fontSize = '18px';
+    value.style.marginBottom = '8px';
+    detailPanel.appendChild(value);
+    // Description
+    let desc = document.createElement('div');
+    desc.textContent = details.desc;
+    desc.style.color = '#ccc';
+    desc.style.fontSize = '16px';
+    detailPanel.appendChild(desc);
+    document.body.appendChild(detailPanel);
 }
 function hideItemDetailPanel() {
-    let panel = document.getElementById('itemDetailPanel');
-    panel.style.display = 'none';
+    if (detailPanel) {
+        detailPanel.remove();
+        detailPanel = null;
+    }
 }
 
 function preload() {
