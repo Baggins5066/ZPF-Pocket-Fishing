@@ -729,13 +729,47 @@ function revealCatch(scene) {
         rand -= f.weight;
     }
     let caught = selectedFish !== null && Math.random() < 0.7; // 70% chance to catch something
+    let resultText, resultTextObj;
+    // Move text further left
+    const textX = player.x - 140 * scaleFactor;
+    const textY = player.y + 16 * scaleFactor;
+    const moveDistance = 32 * scaleFactor; // Move less distance for slower effect
+    const fadeDuration = 2200; // Slower fade and move
     if (caught) {
         inventory[selectedFish.name]++;
-        // Show fish sprite next to player with label
-        let fishSprite = scene.add.sprite(player.x + 60 * scaleFactor, player.y + 32 * scaleFactor, 'fish');
-        fishSprite.setScale(scaleFactor);
-        scene.add.text(player.x + 80 * scaleFactor, player.y + 16 * scaleFactor, selectedFish.name, { fontSize: 18 * scaleFactor, color: '#fff' });
-        setTimeout(() => fishSprite.destroy(), 1200);
+        resultText = `1+ ${selectedFish.name}`;
+        resultTextObj = scene.add.text(textX, textY, resultText, {
+            fontSize: 18 * scaleFactor,
+            color: '#8ff',
+            fontStyle: 'bold'
+        });
+        resultTextObj.setAlpha(1);
+        // Animate up and fade out slower
+        scene.tweens.add({
+            targets: resultTextObj,
+            y: resultTextObj.y - moveDistance,
+            alpha: 0,
+            duration: fadeDuration,
+            ease: 'Cubic.easeOut',
+            onComplete: () => resultTextObj.destroy()
+        });
+    } else {
+        resultText = 'Nothing...';
+        resultTextObj = scene.add.text(textX, textY, resultText, {
+            fontSize: 18 * scaleFactor,
+            color: '#faa',
+            fontStyle: 'bold'
+        });
+        resultTextObj.setAlpha(1);
+        // Animate down and fade out slower
+        scene.tweens.add({
+            targets: resultTextObj,
+            y: resultTextObj.y + moveDistance,
+            alpha: 0,
+            duration: fadeDuration,
+            ease: 'Cubic.easeIn',
+            onComplete: () => resultTextObj.destroy()
+        });
     }
     updateInventoryText();
     updateTotalValueDisplay();
