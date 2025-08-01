@@ -222,6 +222,8 @@ let inventory = {
 };
 let inventoryText;
 let scaleFactor = 1;
+let playerCash = 0;
+let isMarketScreen = false;
 
 function scaleUIElements() {
     // Backpack button and icon
@@ -247,6 +249,36 @@ function scaleUIElements() {
     if (castBtn) {
         castBtn.style.fontSize = (24 * scaleFactor) + 'px';
         castBtn.style.padding = (10 * scaleFactor) + 'px ' + (30 * scaleFactor) + 'px';
+        castBtn.style.display = isMarketScreen ? 'none' : '';
+    }
+    // Cash display
+    const cashDiv = document.getElementById('cashDiv');
+    if (cashDiv) {
+        cashDiv.style.left = (18 * scaleFactor) + 'px';
+        cashDiv.style.top = (18 * scaleFactor) + 'px';
+        cashDiv.style.fontSize = (28 * scaleFactor) + 'px';
+        cashDiv.style.padding = (8 * scaleFactor) + 'px ' + (24 * scaleFactor) + 'px';
+        cashDiv.style.borderRadius = (12 * scaleFactor) + 'px';
+    }
+    // Market button
+    const marketBtn = document.getElementById('marketBtn');
+    if (marketBtn) {
+        marketBtn.style.right = (24 * scaleFactor) + 'px';
+        marketBtn.style.top = (scaleFactor * 0.5 * window.innerHeight) + 'px';
+        marketBtn.style.fontSize = (32 * scaleFactor) + 'px';
+        marketBtn.style.padding = (18 * scaleFactor) + 'px ' + (44 * scaleFactor) + 'px';
+        marketBtn.style.borderRadius = (18 * scaleFactor) + 'px';
+        marketBtn.style.display = isMarketScreen ? 'none' : '';
+    }
+    // Return button
+    const returnBtn = document.getElementById('returnBtn');
+    if (returnBtn) {
+        returnBtn.style.left = (24 * scaleFactor) + 'px';
+        returnBtn.style.top = (scaleFactor * 0.5 * window.innerHeight) + 'px';
+        returnBtn.style.fontSize = (32 * scaleFactor) + 'px';
+        returnBtn.style.padding = (18 * scaleFactor) + 'px ' + (44 * scaleFactor) + 'px';
+        returnBtn.style.borderRadius = (18 * scaleFactor) + 'px';
+        returnBtn.style.display = isMarketScreen ? '' : 'none';
     }
     // Total value display
     const valueDiv = document.getElementById('totalValueDiv');
@@ -292,6 +324,12 @@ function scaleUIElements() {
                 itemDiv.style.margin = (32 * scaleFactor) + 'px 0';
             }
         });
+    }
+    // Hide Phaser canvas in market screen
+    const gameContainer = document.getElementById('gameContainer');
+    const canvas = gameContainer.querySelector('canvas');
+    if (canvas) {
+        canvas.style.display = isMarketScreen ? 'none' : '';
     }
 }
 
@@ -362,6 +400,20 @@ function positionUIElements() {
         castBtn.style.top = (20 * scaleFactor) + 'px';
         castBtn.style.transform = '';
     }
+    // Cash display
+    const cashDiv = document.getElementById('cashDiv');
+    if (cashDiv) {
+        cashDiv.style.left = (18 * scaleFactor) + 'px';
+        cashDiv.style.top = (18 * scaleFactor) + 'px';
+        cashDiv.style.transform = '';
+    }
+    // Market button
+    const marketBtn = document.getElementById('marketBtn');
+    if (marketBtn) {
+        marketBtn.style.right = (24 * scaleFactor) + 'px';
+        marketBtn.style.top = (rect.height * 0.5 - (marketBtn.offsetHeight / 2)) + 'px';
+        marketBtn.style.transform = '';
+    }
     // Inventory modal
     const inventoryModal = document.getElementById('inventoryModal');
     if (inventoryModal) {
@@ -426,6 +478,389 @@ function updateTotalValueDisplay() {
 window.addEventListener('DOMContentLoaded', () => {
     createTotalValueDisplay();
     createGame();
+});
+
+// Create cash display in top left
+function createCashDisplay() {
+    let cashDiv = document.getElementById('cashDiv');
+    const gameContainer = document.getElementById('gameContainer');
+    if (!cashDiv) {
+        cashDiv = document.createElement('div');
+        cashDiv.id = 'cashDiv';
+        cashDiv.style.position = 'absolute';
+        cashDiv.style.zIndex = '20';
+        cashDiv.style.color = '#fff';
+        cashDiv.style.fontWeight = 'bold';
+        cashDiv.style.textShadow = '0 2px 8px #222';
+        cashDiv.style.background = 'rgba(34,34,34,0.85)';
+        cashDiv.style.padding = '8px 24px';
+        cashDiv.style.borderRadius = '12px';
+        cashDiv.textContent = `$${playerCash}`;
+        gameContainer.appendChild(cashDiv);
+    }
+    updateCashDisplay();
+}
+
+function updateCashDisplay() {
+    let cashDiv = document.getElementById('cashDiv');
+    if (cashDiv) {
+        cashDiv.textContent = `$${playerCash}`;
+        // Position and scale
+        cashDiv.style.left = (18 * scaleFactor) + 'px';
+        cashDiv.style.top = (18 * scaleFactor) + 'px';
+        cashDiv.style.fontSize = (28 * scaleFactor) + 'px';
+        cashDiv.style.padding = (8 * scaleFactor) + 'px ' + (24 * scaleFactor) + 'px';
+        cashDiv.style.borderRadius = (12 * scaleFactor) + 'px';
+    }
+}
+
+// Create market button on right
+function createMarketButton() {
+    let marketBtn = document.getElementById('marketBtn');
+    const gameContainer = document.getElementById('gameContainer');
+    if (!marketBtn) {
+        marketBtn = document.createElement('button');
+        marketBtn.id = 'marketBtn';
+        marketBtn.textContent = 'Market';
+        marketBtn.style.position = 'absolute';
+        marketBtn.style.zIndex = '20';
+        marketBtn.style.background = 'linear-gradient(90deg,#44f,#4fc3f7)';
+        marketBtn.style.color = '#fff';
+        marketBtn.style.fontWeight = 'bold';
+        marketBtn.style.fontSize = '32px';
+        marketBtn.style.padding = '18px 44px';
+        marketBtn.style.border = 'none';
+        marketBtn.style.borderRadius = '18px';
+        marketBtn.style.cursor = 'pointer';
+        marketBtn.style.boxShadow = '0 4px 32px #222';
+        marketBtn.style.right = '24px';
+        marketBtn.style.top = '50%';
+        marketBtn.style.transform = 'translateY(-50%)';
+        marketBtn.onclick = function() {
+            showMarketModal();
+        };
+        gameContainer.appendChild(marketBtn);
+    }
+}
+
+// Create market modal
+function createMarketModal() {
+    let marketModal = document.getElementById('marketModal');
+    const gameContainer = document.getElementById('gameContainer');
+    if (!marketModal) {
+        marketModal = document.createElement('div');
+        marketModal.id = 'marketModal';
+        marketModal.style.position = 'absolute';
+        marketModal.style.zIndex = '100';
+        marketModal.style.display = 'none';
+        marketModal.style.left = '50%';
+        marketModal.style.top = '50%';
+        marketModal.style.transform = 'translate(-50%,-50%)';
+        marketModal.style.background = '#222';
+        marketModal.style.borderRadius = '18px';
+        marketModal.style.boxShadow = '0 4px 32px #000';
+        marketModal.style.padding = '32px 24px';
+        marketModal.style.minWidth = '340px';
+        marketModal.style.maxWidth = '480px';
+        marketModal.style.color = '#fff';
+        // Title
+        let title = document.createElement('div');
+        title.textContent = 'Market';
+        title.style.fontSize = '32px';
+        title.style.fontWeight = 'bold';
+        title.style.marginBottom = '18px';
+        marketModal.appendChild(title);
+        // Fish selling section
+        let sellSection = document.createElement('div');
+        sellSection.style.marginBottom = '24px';
+        sellSection.innerHTML = '<div style="font-size:22px;font-weight:bold;margin-bottom:8px;">Sell Fish</div>';
+        let sellList = document.createElement('div');
+        for (let f of fishTypes) {
+            let count = inventory[f.name];
+            if (count > 0) {
+                let row = document.createElement('div');
+                row.style.display = 'flex';
+                row.style.alignItems = 'center';
+                row.style.marginBottom = '8px';
+                let nameDiv = document.createElement('div');
+                nameDiv.textContent = f.name;
+                nameDiv.style.flex = '1';
+                nameDiv.style.fontSize = '18px';
+                let qtyDiv = document.createElement('div');
+                qtyDiv.textContent = `x${count}`;
+                qtyDiv.style.margin = '0 12px';
+                let priceDiv = document.createElement('div');
+                priceDiv.textContent = `$${f.price}`;
+                priceDiv.style.margin = '0 12px';
+                let sellBtn = document.createElement('button');
+                sellBtn.textContent = 'Sell';
+                sellBtn.style.background = '#44f';
+                sellBtn.style.color = '#fff';
+                sellBtn.style.border = 'none';
+                sellBtn.style.borderRadius = '8px';
+                sellBtn.style.padding = '6px 18px';
+                sellBtn.style.cursor = 'pointer';
+                sellBtn.onclick = function() {
+                    playerCash += f.price;
+                    inventory[f.name]--;
+                    updateCashDisplay();
+                    updateInventoryText();
+                    showMarketModal();
+                };
+                row.appendChild(nameDiv);
+                row.appendChild(qtyDiv);
+                row.appendChild(priceDiv);
+                row.appendChild(sellBtn);
+                sellList.appendChild(row);
+            }
+        }
+        if (sellList.children.length === 0) {
+            let emptyMsg = document.createElement('div');
+            emptyMsg.textContent = 'No fish to sell.';
+            emptyMsg.style.color = '#aaa';
+            emptyMsg.style.fontSize = '18px';
+            emptyMsg.style.fontWeight = 'bold';
+            emptyMsg.style.textAlign = 'center';
+            emptyMsg.style.margin = '16px 0';
+            sellList.appendChild(emptyMsg);
+        }
+        sellSection.appendChild(sellList);
+        marketModal.appendChild(sellSection);
+        // Buy items section (placeholder)
+        let buySection = document.createElement('div');
+        buySection.innerHTML = '<div style="font-size:22px;font-weight:bold;margin-bottom:8px;">Buy Items</div>';
+        let buyList = document.createElement('div');
+        // Example item
+        let itemRow = document.createElement('div');
+        itemRow.style.display = 'flex';
+        itemRow.style.alignItems = 'center';
+        itemRow.style.marginBottom = '8px';
+        let itemName = document.createElement('div');
+        itemName.textContent = 'Fishing Hat';
+        itemName.style.flex = '1';
+        itemName.style.fontSize = '18px';
+        let itemPrice = document.createElement('div');
+        itemPrice.textContent = '$10';
+        itemPrice.style.margin = '0 12px';
+        let buyBtn = document.createElement('button');
+        buyBtn.textContent = 'Buy';
+        buyBtn.style.background = '#4fc3f7';
+        buyBtn.style.color = '#fff';
+        buyBtn.style.border = 'none';
+        buyBtn.style.borderRadius = '8px';
+        buyBtn.style.padding = '6px 18px';
+        buyBtn.style.cursor = 'pointer';
+        buyBtn.onclick = function() {
+            if (playerCash >= 10) {
+                playerCash -= 10;
+                updateCashDisplay();
+                alert('You bought a Fishing Hat!');
+            } else {
+                alert('Not enough cash!');
+            }
+        };
+        itemRow.appendChild(itemName);
+        itemRow.appendChild(itemPrice);
+        itemRow.appendChild(buyBtn);
+        buyList.appendChild(itemRow);
+        buySection.appendChild(buyList);
+        marketModal.appendChild(buySection);
+        // Close button
+        let closeBtn = document.createElement('button');
+        closeBtn.textContent = 'Close';
+        closeBtn.style.background = '#333';
+        closeBtn.style.color = '#fff';
+        closeBtn.style.border = 'none';
+        closeBtn.style.borderRadius = '8px';
+        closeBtn.style.padding = '8px 24px';
+        closeBtn.style.cursor = 'pointer';
+        closeBtn.style.marginTop = '18px';
+        closeBtn.onclick = function() {
+            marketModal.style.display = 'none';
+        };
+        marketModal.appendChild(closeBtn);
+        gameContainer.appendChild(marketModal);
+    }
+}
+
+function showMarketModal() {
+
+// Hide all fishing UI elements
+const fishingUIIds = ['backpackBtn', 'castBtn', 'cashDiv', 'marketBtn', 'totalValueDiv', 'inventoryModal'];
+for (const id of fishingUIIds) {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+}
+// Hide Phaser canvas
+const gameContainer = document.getElementById('gameContainer');
+const canvas = gameContainer.querySelector('canvas');
+if (canvas) canvas.style.display = 'none';
+
+// Create or show full-screen market panel
+let marketPanel = document.getElementById('marketPanel');
+if (!marketPanel) {
+    marketPanel = document.createElement('div');
+    marketPanel.id = 'marketPanel';
+    marketPanel.style.position = 'absolute';
+    marketPanel.style.left = '0';
+    marketPanel.style.top = '0';
+    marketPanel.style.width = '100%';
+    marketPanel.style.height = '100%';
+    marketPanel.style.background = 'linear-gradient(135deg,#222 60%,#44f 100%)';
+    marketPanel.style.zIndex = '200';
+    marketPanel.style.display = 'flex';
+    marketPanel.style.flexDirection = 'column';
+    marketPanel.style.alignItems = 'center';
+    marketPanel.style.justifyContent = 'center';
+    gameContainer.appendChild(marketPanel);
+}
+marketPanel.innerHTML = '';
+
+// Title
+let title = document.createElement('div');
+title.textContent = 'Market';
+title.style.fontSize = '48px';
+title.style.fontWeight = 'bold';
+title.style.color = '#fff';
+title.style.marginBottom = '32px';
+marketPanel.appendChild(title);
+
+// Fish selling section
+let sellSection = document.createElement('div');
+sellSection.style.marginBottom = '32px';
+sellSection.style.background = 'rgba(34,34,34,0.85)';
+sellSection.style.borderRadius = '18px';
+sellSection.style.padding = '24px 32px';
+sellSection.style.boxShadow = '0 4px 32px #000';
+sellSection.innerHTML = '<div style="font-size:28px;font-weight:bold;margin-bottom:12px;color:#8ff;">Sell Fish</div>';
+let sellList = document.createElement('div');
+for (let f of fishTypes) {
+    let count = inventory[f.name];
+    if (count > 0) {
+        let row = document.createElement('div');
+        row.style.display = 'flex';
+        row.style.alignItems = 'center';
+        row.style.marginBottom = '12px';
+        let nameDiv = document.createElement('div');
+        nameDiv.textContent = f.name;
+        nameDiv.style.flex = '1';
+        nameDiv.style.fontSize = '22px';
+        nameDiv.style.color = '#fff';
+        let qtyDiv = document.createElement('div');
+        qtyDiv.textContent = `x${count}`;
+        qtyDiv.style.margin = '0 18px';
+        qtyDiv.style.color = '#8ff';
+        let priceDiv = document.createElement('div');
+        priceDiv.textContent = `$${f.price}`;
+        priceDiv.style.margin = '0 18px';
+        priceDiv.style.color = '#fff';
+        let sellBtn = document.createElement('button');
+        sellBtn.textContent = 'Sell';
+        sellBtn.style.background = '#44f';
+        sellBtn.style.color = '#fff';
+        sellBtn.style.border = 'none';
+        sellBtn.style.borderRadius = '8px';
+        sellBtn.style.padding = '10px 28px';
+        sellBtn.style.fontSize = '20px';
+        sellBtn.style.cursor = 'pointer';
+        sellBtn.onclick = function() {
+            playerCash += f.price;
+            inventory[f.name]--;
+            updateCashDisplay();
+            updateInventoryText();
+            showMarketModal();
+        };
+        row.appendChild(nameDiv);
+        row.appendChild(qtyDiv);
+        row.appendChild(priceDiv);
+        row.appendChild(sellBtn);
+        sellList.appendChild(row);
+    }
+}
+if (sellList.children.length === 0) {
+    let emptyMsg = document.createElement('div');
+    emptyMsg.textContent = 'No fish to sell.';
+    emptyMsg.style.color = '#aaa';
+    emptyMsg.style.fontSize = '22px';
+    emptyMsg.style.fontWeight = 'bold';
+    emptyMsg.style.textAlign = 'center';
+    emptyMsg.style.margin = '24px 0';
+    sellList.appendChild(emptyMsg);
+}
+sellSection.appendChild(sellList);
+marketPanel.appendChild(sellSection);
+
+// Buy items section (placeholder)
+let buySection = document.createElement('div');
+buySection.style.background = 'rgba(34,34,34,0.85)';
+buySection.style.borderRadius = '18px';
+buySection.style.padding = '24px 32px';
+buySection.style.boxShadow = '0 4px 32px #000';
+buySection.style.marginBottom = '32px';
+buySection.innerHTML = '<div style="font-size:28px;font-weight:bold;margin-bottom:12px;color:#4fc3f7;">Buy Items</div>';
+let buyList = document.createElement('div');
+let itemRow = document.createElement('div');
+itemRow.style.display = 'flex';
+itemRow.style.alignItems = 'center';
+itemRow.style.marginBottom = '12px';
+let itemName = document.createElement('div');
+itemName.textContent = 'Fishing Hat';
+itemName.style.flex = '1';
+itemName.style.fontSize = '22px';
+itemName.style.color = '#fff';
+let itemPrice = document.createElement('div');
+itemPrice.textContent = '$10';
+itemPrice.style.margin = '0 18px';
+itemPrice.style.color = '#fff';
+let buyBtn = document.createElement('button');
+buyBtn.textContent = 'Buy';
+buyBtn.style.background = '#4fc3f7';
+buyBtn.style.color = '#fff';
+buyBtn.style.border = 'none';
+buyBtn.style.borderRadius = '8px';
+buyBtn.style.padding = '10px 28px';
+buyBtn.style.fontSize = '20px';
+buyBtn.style.cursor = 'pointer';
+buyBtn.onclick = function() {
+    if (playerCash >= 10) {
+        playerCash -= 10;
+        updateCashDisplay();
+        alert('You bought a Fishing Hat!');
+    } else {
+        alert('Not enough cash!');
+    }
+};
+itemRow.appendChild(itemName);
+itemRow.appendChild(itemPrice);
+itemRow.appendChild(buyBtn);
+buyList.appendChild(itemRow);
+buySection.appendChild(buyList);
+marketPanel.appendChild(buySection);
+
+// Return button
+let returnBtn = document.createElement('button');
+returnBtn.textContent = 'Return';
+returnBtn.style.background = '#333';
+returnBtn.style.color = '#fff';
+returnBtn.style.border = 'none';
+returnBtn.style.borderRadius = '12px';
+returnBtn.style.padding = '16px 48px';
+returnBtn.style.fontSize = '28px';
+returnBtn.style.cursor = 'pointer';
+returnBtn.style.marginTop = '24px';
+returnBtn.onclick = function() {
+    switchToFishingScreen();
+};
+marketPanel.appendChild(returnBtn);
+marketPanel.style.display = 'flex';
+}
+
+// Close market when clicking outside
+document.addEventListener('mousedown', function(e) {
+    const marketModal = document.getElementById('marketModal');
+    if (marketModal && marketModal.style.display !== 'none' && !marketModal.contains(e.target) && e.target.id !== 'marketBtn') {
+        marketModal.style.display = 'none';
+    }
 });
 
 let inventoryFadeTimeout = null;
@@ -709,6 +1144,9 @@ function castRod() {
                         document.getElementById('castBtn').disabled = false;
                         isCasting = false;
                         revealCatch(scene);
+        createCashDisplay();
+        createMarketButton();
+        createMarketModal();
                     }
                 });
             }, waitTime);
@@ -782,6 +1220,7 @@ function updateInventoryText() {
         badge.textContent = totalCount;
     }
     updateTotalValueDisplay();
+    updateCashDisplay();
 }
 
 function updatePhaserTextPositions() {
@@ -797,6 +1236,33 @@ function update() {
     fishGroup.getChildren().forEach(fish => {
         if (fish.y < 300) fish.destroy();
     });
+}
+
+function switchToMarketScreen() {
+    isMarketScreen = true;
+    scaleUIElements();
+    showMarketModal();
+}
+
+function switchToFishingScreen() {
+    isMarketScreen = false;
+    scaleUIElements();
+    // Hide marketPanel and show fishing UI
+    let marketPanel = document.getElementById('marketPanel');
+    if (marketPanel) marketPanel.style.display = 'none';
+    // Show all fishing UI elements
+    const fishingUIIds = ['backpackBtn', 'castBtn', 'cashDiv', 'marketBtn', 'totalValueDiv', 'inventoryModal'];
+    for (const id of fishingUIIds) {
+        const el = document.getElementById(id);
+        if (el) el.style.display = '';
+    }
+    // Show Phaser canvas
+    const gameContainer = document.getElementById('gameContainer');
+    const canvas = gameContainer.querySelector('canvas');
+    if (canvas) canvas.style.display = '';
+    // Hide marketModal if present
+    let marketModal = document.getElementById('marketModal');
+    if (marketModal) marketModal.style.display = 'none';
 }
 </script>
 </body>
